@@ -42,9 +42,10 @@ jobs:
         working-directory: demo
         with:
           node-version: 20
-      - run: npm install
-      - run: npm run build          # vue-tsc 类型检查 + vite 构建
-      - run: cargo test --workspace  # 含 Tauri 桌面端（headless 即可，仅编译+单测）
+        run: |
+          npm install
+          npm run build
+          cargo test --workspace 
 
       - name: 构建 Agent 与桌面端
         working-directory: demo
