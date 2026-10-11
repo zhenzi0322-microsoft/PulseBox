@@ -85,9 +85,20 @@ jobs:
           chmod +x scripts/build-deb.sh
           ./scripts/build-deb.sh
 
-      - name: 上传 .deb 产物
-        uses: actions/upload-artifact@v4
+      # - name: 上传 .deb 产物
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: pulsebox-agent-deb
+      #     path: demo/target/pulsebox-agent_*.deb
+      #     if-no-files-found: error
+
+      - name: 发布 .deb 到 GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.tag_name != ''
+        uses: softprops/action-gh-release@v2
         with:
-          name: pulsebox-agent-deb
-          path: demo/target/pulsebox-agent_*.deb
-          if-no-files-found: error
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          name: PulseBox Agent ${{ inputs.tag_name || github.ref_name }}
+          files: demo/target/pulsebox-agent_*.deb
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
