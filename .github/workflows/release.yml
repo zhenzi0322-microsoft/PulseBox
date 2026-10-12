@@ -79,7 +79,7 @@ jobs:
           tag_name: ${{ inputs.tag_name || github.ref_name }}
           files: |
             demo/target/release/bundle/nsis/*
-          generate_release_notes: true
+          generate_release_notes: false
           body: |
             ### ✨ 新增 · 进程级监控（Top 视图）
             - 新增「进程」面板，可按 **CPU** 或 **内存** 占用一键切换排序，实时展示系统资源消耗最高的进程。
@@ -134,7 +134,7 @@ jobs:
           tag_name: ${{ inputs.tag_name || github.ref_name }}
           name: PulseBox ${{ inputs.tag_name || github.ref_name }}
           files: demo/target/pulsebox-agent_*.deb
-          generate_release_notes: true
+          generate_release_notes: false
           body: |
             ### ✨ 新增 · 进程级监控（Top 视图）
             - 新增「进程」面板，可按 **CPU** 或 **内存** 占用一键切换排序，实时展示系统资源消耗最高的进程。
