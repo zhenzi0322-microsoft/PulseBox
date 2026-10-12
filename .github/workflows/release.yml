@@ -68,8 +68,8 @@ jobs:
         with:
           name: PulseBox ${{ inputs.tag_name || github.ref_name }}
           path: |
-            demo/src-tauri/target/release/bundle/nsis/*
-            demo/src-tauri/target/release/bundle/msi/*
+            demo/target/release/bundle/nsis/*
+            demo/target/release/bundle/msi/*
           if-no-files-found: error
 
   # ---- Ubuntu：把 pulsebox-agent 打包成 .deb，可直接在服务器安装运行 ----
