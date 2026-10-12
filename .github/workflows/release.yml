@@ -80,6 +80,11 @@ jobs:
           files: |
             demo/target/release/bundle/nsis/*
           generate_release_notes: true
+          body: |
+            ### ✨ 新增 · 进程级监控（Top 视图）
+            - 新增「进程」面板，可按 **CPU** 或 **内存** 占用一键切换排序，实时展示系统资源消耗最高的进程。
+            - 展示字段：PID、进程名、所属用户、CPU 占用率（带迷你条形图）、内存占用（字节 + 百分比）。
+            - 取「CPU 降序前 15 ∪ 内存降序前 15」去重并集（最多 30 条），优先暴露最占资源的进程。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
