@@ -132,7 +132,7 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        body: |
+        body:|
 
           ### ✨ 新增 · 进程级监控（Top 视图）
           - 新增「进程」面板，可按 **CPU** 或 **内存** 占用一键切换排序，实时展示系统资源消耗最高的进程。
