@@ -43,7 +43,7 @@ jobs:
         env:
           CODEUP_TOKEN: ${{ secrets.CODEUP_TOKEN }}
         run: |
-          git clone "https://oauth2:${CODEUP_TOKEN}@codeup.aliyun.com/zheniz0322/Rust/tauri/PulseBox.git" demo
+          git clone "https://oauth2:${env:CODEUP_TOKEN}@codeup.aliyun.com/zheniz0322/Rust/tauri/PulseBox.git" demo
         shell: pwsh
 
       # JDK 17：Tauri v2 的 gradle / AGP 要求
