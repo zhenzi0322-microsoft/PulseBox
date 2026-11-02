@@ -44,12 +44,7 @@ jobs:
           CODEUP_TOKEN: ${{ secrets.CODEUP_TOKEN }}
         run: |
           git clone "https://oauth2:${CODEUP_TOKEN}@codeup.aliyun.com/zheniz0322/Rust/tauri/PulseBox.git" demo
-
-      - name: Checkout (GitHub fallback)
-        if: ${{ secrets.CODEUP_TOKEN == '' }}
-        uses: actions/checkout@v4
-        with:
-          path: demo
+        shell: pwsh
 
       # JDK 17：Tauri v2 的 gradle / AGP 要求
       - name: Setup JDK 17
