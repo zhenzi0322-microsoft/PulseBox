@@ -40,7 +40,6 @@ jobs:
       # 与 release.yml 一致：优先从 Codeup 私有仓拉代码到 demo 目录；
       # 未配置 CODEUP_TOKEN 时回退为检出本 GitHub 仓（保持目录结构一致）。
       - name: Clone Codeup private repo into demo
-        if: ${{ secrets.CODEUP_TOKEN != '' }}
         env:
           CODEUP_TOKEN: ${{ secrets.CODEUP_TOKEN }}
         run: |
