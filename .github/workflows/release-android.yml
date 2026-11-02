@@ -54,8 +54,12 @@ jobs:
           java-version: "17"
 
       # Android SDK：platform 34 + build-tools 34 + NDK 25.1（Tauri v2 推荐版本）
+      # 必须显式给 packages：v3 默认值含已下架的 `tools` 包，会让 sdkmanager 直接
+      # 报错退出（Warning: Failed to find package 'tools'），上游在 v4.0.4 才修掉。
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
       - name: Install NDK and platform packages
         run: |
           sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "ndk;25.1.8937393"
