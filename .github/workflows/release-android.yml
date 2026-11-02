@@ -3,7 +3,7 @@ name: build-release-android
 on:
   push:
     tags:
-      - "v*"
+      - "b*"
   workflow_dispatch:
     inputs:
       tag_name:
