@@ -1,0 +1,133 @@
+name: build-release-android
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: '要创建 / 更新的 Release tag（手动触发时填写；tag 推送触发可留空）'
+        required: false
+        default: ''
+        type: string
+      # 勾选后仅产出调试版 APK（用默认 debug keystore 签名），不要求配置发布签名 secrets。
+      debug_only:
+        description: '仅构建 debug APK（跳过发布签名）'
+        required: false
+        default: false
+        type: boolean
+
+# 与桌面流水线并发隔离：同一 tag 的 android 作业单独成组
+concurrency:
+  group: ci-android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # gradle 构建吃内存，收紧 JVM 堆避免 runner OOM
+  GRADLE_OPTS: "-Xmx3g"
+
+jobs:
+  # ---- Android：构建 universal APK（Agent 模式监控查看端）----
+  android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      # 与 release.yml 一致：优先从 Codeup 私有仓拉代码到 demo 目录；
+      # 未配置 CODEUP_TOKEN 时回退为检出本 GitHub 仓（保持目录结构一致）。
+      - name: Clone Codeup private repo into demo
+        if: ${{ secrets.CODEUP_TOKEN != '' }}
+        env:
+          CODEUP_TOKEN: ${{ secrets.CODEUP_TOKEN }}
+        run: |
+          git clone "https://oauth2:${CODEUP_TOKEN}@codeup.aliyun.com/zheniz0322/Rust/tauri/PulseBox.git" demo
+
+      - name: Checkout (GitHub fallback)
+        if: ${{ secrets.CODEUP_TOKEN == '' }}
+        uses: actions/checkout@v4
+        with:
+          path: demo
+
+      # JDK 17：Tauri v2 的 gradle / AGP 要求
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Android SDK：platform 34 + build-tools 34 + NDK 25.1（Tauri v2 推荐版本）
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install NDK and platform packages
+        run: |
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "ndk;25.1.8937393"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.1.8937393" >> "$GITHUB_ENV"
+
+      - name: Setup Rust (android targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --version 3.7.0 --locked
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 安装前端依赖
+        working-directory: demo
+        run: npm install
+
+      # 生成 / 刷新 src-tauri/gen/android 工程（已提交入库则幂等覆盖为当前配置）。
+      - name: 初始化 Android 工程
+        working-directory: demo
+        run: npx tauri android init
+
+      # 签名材料未配置时构建 debug APK（--debug）；配置了 secrets.ANDROID_KEYSTORE_* 则走发布签名。
+      - name: 构建 Android APK
+        working-directory: demo
+        env:
+          DEBUG_ONLY: ${{ github.event.inputs.debug_only }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "${KEYSTORE_BASE64:-}" ] && [ "${DEBUG_ONLY}" != "true" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/pulsebox.keystore"
+            npx tauri android build --apk \
+              --cd-keystore "$RUNNER_TEMP/pulsebox.keystore" \
+              --cd-keystore-password "$KEYSTORE_PASSWORD" \
+              --cd-key-alias "$KEY_ALIAS" \
+              --cd-key-password "$KEY_PASSWORD"
+          else
+            npx tauri android build --apk --debug
+          fi
+
+      - name: 收集 APK 产物
+        run: |
+          mkdir -p apk-out
+          find demo/src-tauri/gen/android/app/build/outputs/apk -name '*.apk' \
+            -exec cp -v {} apk-out/ \;
+          ls -lh apk-out
+
+      - name: Push Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.tag_name != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          name: PulseBox ${{ inputs.tag_name || github.ref_name }} (Android)
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          files: apk-out/*.apk
+          body: |
+            ### 📱 PulseBox Android APK（监控查看端）
+            - **Agent 模式**：完整可用——查看服务器指标、Docker / 容器 / 数据库 / GPU 等监控数据，并可经 Agent 通道使用交互式终端。
+            - **SSH 直连模式**：移动端不可用（Android 无 OpenSSH 二进制与 PTY），请使用桌面端或改用 Agent 模式。
+            - 产物为 universal APK（arm64-v8a / armeabi-v7a / x86_64），默认可直接安装；如未配置发布签名则为 debug 签名版。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
